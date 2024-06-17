@@ -1,0 +1,58 @@
+!pip install requests beautifulsoup4
+from google.colab import drive
+import requests
+from bs4 import BeautifulSoup
+import urllib.parse
+import os
+
+# 구글 드라이브 연동
+drive.mount('/content/drive')
+
+# 사용자 입력 받기
+search_query = input("검색할 키워드를 입력하세요: ")
+num_images = int(input("다운로드할 이미지 개수를 입력하세요: "))
+
+search_url = f"https://pixabay.com/ko/images/search/{urllib.parse.quote(search_query)}/"
+
+# 요청 헤더 설정
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+}
+
+# 검색 결과 페이지 요청
+response = requests.get(search_url, headers=headers)
+if response.status_code == 200:
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    # 이미지 태그 찾기
+    image_tags = soup.find_all("img", {"srcset": True})
+
+    # 이미지 URL 추출
+    image_urls = []
+    for img in image_tags:
+        srcset = img["srcset"].split(",")
+        for src in srcset:
+            url = src.strip().split(" ")[0]
+            image_urls.append(url)
+        if len(image_urls) >= num_images:
+            break
+
+    # 이미지 다운로드
+    save_path = "/content/drive/MyDrive/SNS"  # 구글 드라이브 내 저장 폴더 경로
+    os.makedirs(save_path, exist_ok=True)  # 다운로드 폴더 생성
+
+    for i, img_url in enumerate(image_urls[:num_images]):
+        img_response = requests.get(img_url)
+        if img_response.status_code == 200:
+            with open(f"{save_path}/image_{i}.jpg", "wb") as f:
+                f.write(img_response.content)
+else:
+    print(f"Failed to retrieve search results. Status code: {response.status_code}")
+
+
+
+
+
+
+
+
